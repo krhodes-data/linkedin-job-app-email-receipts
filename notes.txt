@@ -1,0 +1,7 @@
+Pseudocode:
+
+1. Connect to Yahoo mailbox
+2. Create/filter list of emails that we want to parse
+3. Parse out the following as values: job position/title, company, date applied
+4. append values to Google Sheet
+5. remove email from inbox so it doesn't get pulled again on next script run
