@@ -1,6 +1,7 @@
 import os
 import imaplib
 import email
+import re
 
 import gspread
 from dotenv import load_dotenv
@@ -36,13 +37,26 @@ with imaplib.IMAP4_SSL(host="imap.mail.yahoo.com", port=imaplib.IMAP4_SSL_PORT) 
         resp_code, mail_data = imap_ssl.fetch(mail_id, '(RFC822)') ## Fetch mail data.
         message = email.message_from_bytes(mail_data[0][1]) ## Construct message from mail data
         print(f"Evaluating mail_id {mail_id}")
+        body = ""
+        if message.is_multipart():
+            for part in message.walk():
+                ctype = part.get_content_type()
+                cdispo = str(part.get('Content-Disposition'))
+                if ctype == 'text/plain':
+                    body = part.get_payload(decode=True)
+                    break
+        else:
+            body = message.get_payload(decode=True)
+        body = body.decode('utf-8')
+        hyperlinks = re.findall('https.+?\\r\\n',body)
         if message.get("Subject").startswith("You applied for "):
             emailSubject = message.get("Subject")
             print("Email found - adding to spreadsheet")
             dateApplied = message.get("Date")
             companyAndTitle = emailSubject.split("for ")[1]
             positionAppliedFor,companyAppliedTo = companyAndTitle.split(" at ")
-            value_list = [positionAppliedFor,companyAppliedTo,dateApplied]
+            jobLink = hyperlinks[0]
+            value_list = [positionAppliedFor,companyAppliedTo,dateApplied,jobLink]
             worksheet.append_row(value_list,value_input_option='USER_ENTERED')
             # Delete message (moves to Trash folder, per current email settings)
             print(f"Deleting {emailSubject}")
